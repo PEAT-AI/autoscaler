@@ -89,6 +89,8 @@ type StaticAutoscaler struct {
 	processorCallbacks      *staticAutoscalerProcessorCallbacks
 	initialized             bool
 	ignoredTaints           taints.TaintKeySet
+	// rate limiter to limit number of nodes in 1 scale up
+	scaleUpRateLimiter *ScaleUpRateLimiter
 }
 
 type staticAutoscalerProcessorCallbacks struct {
@@ -195,6 +197,18 @@ func NewStaticAutoscaler(
 	// Set the initial scale times to be less than the start time so as to
 	// not start in cooldown mode.
 	initialScaleTime := time.Now().Add(-time.Hour)
+
+	var scaleUpRateLimiter *ScaleUpRateLimiter
+
+	if opts.ScaleUpRateLimitEnabled && opts.ScaleUpMaxNumberOfNodesPerMin > 0 && opts.ScaleUpBurstMaxNumberOfNodesPerMin > 0 {
+		scaleUpRateLimiter = &ScaleUpRateLimiter{
+			maxNumberOfNodesPerMin:      opts.ScaleUpMaxNumberOfNodesPerMin,
+			burstMaxNumberOfNodesPerMin: opts.ScaleUpBurstMaxNumberOfNodesPerMin,
+			unusedNodeSlots:             0,
+			lastReserve:                 time.Now(),
+		}
+	}
+
 	return &StaticAutoscaler{
 		AutoscalingContext:      autoscalingContext,
 		lastScaleUpTime:         initialScaleTime,
@@ -207,6 +221,7 @@ func NewStaticAutoscaler(
 		processorCallbacks:      processorCallbacks,
 		clusterStateRegistry:    clusterStateRegistry,
 		ignoredTaints:           ignoredTaints,
+		scaleUpRateLimiter:      scaleUpRateLimiter,
 	}
 }
 
@@ -456,7 +471,7 @@ func (a *StaticAutoscaler) RunOnce(currentTime time.Time) errors.AutoscalerError
 	// add upcoming nodes to ClusterSnapshot
 	upcomingNodes := getUpcomingNodeInfos(a.clusterStateRegistry, nodeInfosForGroups)
 	for _, upcomingNode := range upcomingNodes {
-		var pods []*apiv1.Pod
+    var pods []*apiv1.Pod
 		for _, podInfo := range upcomingNode.Pods {
 			pods = append(pods, podInfo.Pod)
 		}
@@ -522,7 +537,7 @@ func (a *StaticAutoscaler) RunOnce(currentTime time.Time) errors.AutoscalerError
 		klog.V(1).Info("Unschedulable pods are very new, waiting one iteration for more")
 	} else {
 		scaleUpStart := preScaleUp()
-		scaleUpStatus, typedErr = ScaleUp(autoscalingContext, a.processors, a.clusterStateRegistry, a.scaleUpResourceManager, unschedulablePodsToHelp, readyNodes, daemonsets, nodeInfosForGroups, a.ignoredTaints)
+		scaleUpStatus, typedErr = ScaleUp(autoscalingContext, a.processors, a.clusterStateRegistry, a.scaleUpResourceManager, unschedulablePodsToHelp, readyNodes, daemonsets, nodeInfosForGroups, a.ignoredTaints, a.scaleUpRateLimiter)
 		if exit, err := postScaleUp(scaleUpStart); exit {
 			return err
 		}

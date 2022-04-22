@@ -86,6 +86,12 @@ type AutoscalingOptions struct {
 	MaxNodeProvisionTime time.Duration
 	// MaxTotalUnreadyPercentage is the maximum percentage of unready nodes after which CA halts operations
 	MaxTotalUnreadyPercentage float64
+	// Whether the scale-up rate limiter should be enabled or not
+	ScaleUpRateLimitEnabled bool
+	// Maximum number of nodes to add per min
+	ScaleUpMaxNumberOfNodesPerMin int
+	// Maximum burst number of nodes to add per min
+	ScaleUpBurstMaxNumberOfNodesPerMin int
 	// OkTotalUnreadyCount is the number of allowed unready nodes, irrespective of max-total-unready-percentage
 	OkTotalUnreadyCount int
 	// ScaleUpFromZero defines if CA should scale up when there 0 ready nodes.

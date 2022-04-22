@@ -214,6 +214,9 @@ var (
 	nodeDeleteDelayAfterTaint          = flag.Duration("node-delete-delay-after-taint", 5*time.Second, "How long to wait before deleting a node after tainting it")
 	scaleDownSimulationTimeout         = flag.Duration("scale-down-simulation-timeout", 5*time.Minute, "How long should we run scale down simulation.")
 	parallelDrain                      = flag.Bool("parallel-drain", false, "Whether to allow parallel drain of nodes.")
+	scaleUpRateLimitEnabledFlag        = flag.Bool("scale-up-rate-limit-enabled", false, "Should CA enable scale-up ratelimiting")
+	scaleUpMaxNumberOfNodesPerMin      = flag.Int("scale-up-max-number-nodes-per-min", -1, "Maximum number of nodes CA can scale up in 1 iteration")
+	scaleUpBurstNumberOfNodesPerMin    = flag.Int("scale-up-burst-number-nodes-per-min", -1, "Maximum burst number of nodes CA can scale up in 1 iteration")
 )
 
 func createAutoscalingOptions() config.AutoscalingOptions {
@@ -315,6 +318,9 @@ func createAutoscalingOptions() config.AutoscalingOptions {
 		NodeDeleteDelayAfterTaint:          *nodeDeleteDelayAfterTaint,
 		ScaleDownSimulationTimeout:         *scaleDownSimulationTimeout,
 		ParallelDrain:                      *parallelDrain,
+		ScaleUpRateLimitEnabled:            *scaleUpRateLimitEnabledFlag,
+		ScaleUpBurstMaxNumberOfNodesPerMin: *scaleUpBurstNumberOfNodesPerMin,
+		ScaleUpMaxNumberOfNodesPerMin:      *scaleUpMaxNumberOfNodesPerMin,
 	}
 }
 

@@ -91,6 +91,12 @@ type StaticAutoscaler struct {
 	processorCallbacks      *staticAutoscalerProcessorCallbacks
 	initialized             bool
 	taintConfig             taints.TaintConfig
+	// Caches nodeInfo computed for previously seen nodes
+	nodeInfoCache map[string]*schedulerframework.NodeInfo
+	ignoredTaints taints.TaintKeySet
+
+	// rate limiter to limit number of nodes in 1 scale up
+	scaleUpRateLimiter *ScaleUpRateLimiter
 }
 
 type staticAutoscalerProcessorCallbacks struct {
@@ -194,6 +200,18 @@ func NewStaticAutoscaler(
 	// Set the initial scale times to be less than the start time so as to
 	// not start in cooldown mode.
 	initialScaleTime := time.Now().Add(-time.Hour)
+
+	var scaleUpRateLimiter *ScaleUpRateLimiter
+
+	if opts.ScaleUpRateLimitEnabled && opts.ScaleUpMaxNumberOfNodesPerMin > 0 && opts.ScaleUpBurstMaxNumberOfNodesPerMin > 0 {
+		scaleUpRateLimiter = &ScaleUpRateLimiter{
+			maxNumberOfNodesPerMin:      opts.ScaleUpMaxNumberOfNodesPerMin,
+			burstMaxNumberOfNodesPerMin: opts.ScaleUpBurstMaxNumberOfNodesPerMin,
+			unusedNodeSlots:             0,
+			lastReserve:                 time.Now(),
+		}
+	}
+
 	return &StaticAutoscaler{
 		AutoscalingContext:      autoscalingContext,
 		lastScaleUpTime:         initialScaleTime,
@@ -206,6 +224,9 @@ func NewStaticAutoscaler(
 		processorCallbacks:      processorCallbacks,
 		clusterStateRegistry:    clusterStateRegistry,
 		taintConfig:             taintConfig,
+		nodeInfoCache:           make(map[string]*schedulerframework.NodeInfo),
+		ignoredTaints:           ignoredTaints,
+		scaleUpRateLimiter:      scaleUpRateLimiter,
 	}
 }
 
@@ -527,6 +548,8 @@ func (a *StaticAutoscaler) RunOnce(currentTime time.Time) caerrors.AutoscalerErr
 	}
 
 	postScaleUp := func(scaleUpStart time.Time) (bool, caerrors.AutoscalerError) {
+		scaleUpStatus, typedErr = ScaleUp(autoscalingContext, a.processors, a.clusterStateRegistry, unschedulablePodsToHelp, readyNodes, daemonsets, nodeInfosForGroups, a.ignoredTaints, a.scaleUpRateLimiter)
+
 		metrics.UpdateDurationFromStart(metrics.ScaleUp, scaleUpStart)
 
 		if a.processors != nil && a.processors.ScaleUpStatusProcessor != nil {

@@ -21,6 +21,9 @@ import (
 	"time"
 )
 
+// ScaleUpRateLimiter represents a rate limiter for scaling up nodes.
+// It manages the number of nodes that can be added per minute based on a
+// maximum limit and a burst limit.
 type ScaleUpRateLimiter struct {
 	// targeted number of nodes per min
 	maxNumberOfNodesPerMin int
@@ -33,6 +36,9 @@ type ScaleUpRateLimiter struct {
 	mu          sync.Mutex
 }
 
+// AcquireNodes tries to reserve a number of nodes for scale up.
+// The function returns a boolean value indicating whether nodes can be scaled up,
+// and an integer value representing the number of nodes that can be added.
 func (t *ScaleUpRateLimiter) AcquireNodes(newNodes int) (bool, int) {
 	t.mu.Lock()
 	defer t.mu.Unlock()

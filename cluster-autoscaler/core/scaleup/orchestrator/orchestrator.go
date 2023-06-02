@@ -83,6 +83,7 @@ func (o *ScaleUpOrchestrator) ScaleUp(
 	nodes []*apiv1.Node,
 	daemonSets []*appsv1.DaemonSet,
 	nodeInfos map[string]*schedulerframework.NodeInfo,
+	scaleUpRateLimiter *scaleup.ScaleUpRateLimiter,
 ) (*status.ScaleUpStatus, errors.AutoscalerError) {
 	if !o.initialized {
 		return scaleUpError(&status.ScaleUpStatus{}, errors.NewAutoscalerError(errors.InternalError, "ScaleUpOrchestrator is not initialized"))
@@ -183,6 +184,7 @@ func (o *ScaleUpOrchestrator) ScaleUp(
 		options = append(options, o)
 	}
 	bestOption := o.autoscalingContext.ExpanderStrategy.BestOption(options, nodeInfos)
+
 	if bestOption == nil || bestOption.NodeCount <= 0 {
 		return &status.ScaleUpStatus{
 			Result:                  status.ScaleUpNoOptionsAvailable,
@@ -190,13 +192,33 @@ func (o *ScaleUpOrchestrator) ScaleUp(
 			ConsideredNodeGroups:    nodeGroups,
 		}, nil
 	}
+
+	newNodes := bestOption.NodeCount
+	if newNodes > 0 && scaleUpRateLimiter != nil {
+		klog.V(1).Infof("Scale-Up ratelimiting enabled, re-evaluating %d new nodes", newNodes)
+		withinScaleUpLimit, targetedNumberOfNewNodes := scaleUpRateLimiter.AcquireNodes(newNodes)
+		if withinScaleUpLimit {
+			klog.V(1).Infof("Scale-Up ratelimiting enabled, able to scale up %d nodes", targetedNumberOfNewNodes)
+		} else {
+			klog.V(1).Infof("Scale-Up ratelimiting enabled, NOT able to scale up due to hit scale-up ratelimiting of %d nodes per min, burst at %d nodes, ignore this scale-up", scaleUpRateLimiter.MaxNumberOfNodesPerMin, scaleUpRateLimiter.BurstMaxNumberOfNodesPerMin)
+		}
+		bestOption.NodeCount = targetedNumberOfNewNodes
+	}
+	if bestOption.NodeCount <= 0 {
+		return &status.ScaleUpStatus{
+			Result:                  status.ScaleUpNoOptionsAvailable,
+			PodsRemainUnschedulable: GetRemainingPods(podEquivalenceGroups, skippedNodeGroups),
+			ConsideredNodeGroups:    nodeGroups,
+		}, nil
+	}
+
 	klog.V(1).Infof("Best option to resize: %s", bestOption.NodeGroup.Id())
 	if len(bestOption.Debug) > 0 {
 		klog.V(1).Info(bestOption.Debug)
 	}
 	klog.V(1).Infof("Estimated %d nodes needed in %s", bestOption.NodeCount, bestOption.NodeGroup.Id())
 
-	newNodes, aErr := o.GetCappedNewNodeCount(bestOption.NodeCount, len(nodes)+len(upcomingNodes))
+	newNodes, aErr = o.GetCappedNewNodeCount(bestOption.NodeCount, len(nodes)+len(upcomingNodes))
 	if aErr != nil {
 		return scaleUpError(&status.ScaleUpStatus{PodsTriggeredScaleUp: bestOption.Pods}, aErr)
 	}

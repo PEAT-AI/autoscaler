@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package core
+package scaleup
 
 import (
 	"sync"
@@ -26,13 +26,13 @@ import (
 // maximum limit and a burst limit.
 type ScaleUpRateLimiter struct {
 	// targeted number of nodes per min
-	maxNumberOfNodesPerMin int
+	MaxNumberOfNodesPerMin int
 	// burst number of nodes per min
-	burstMaxNumberOfNodesPerMin int
+	BurstMaxNumberOfNodesPerMin int
 	// node slots that haven't been used in the previous iteration
-	unusedNodeSlots int
+	UnusedNodeSlots int
 	// last reserve time
-	lastReserve time.Time
+	LastReserve time.Time
 	mu          sync.Mutex
 }
 
@@ -44,9 +44,9 @@ func (t *ScaleUpRateLimiter) AcquireNodes(newNodes int) (bool, int) {
 	defer t.mu.Unlock()
 
 	now := time.Now()
-	allowedNumNodesToAdd := int(now.Sub(t.lastReserve).Minutes())*t.maxNumberOfNodesPerMin + t.unusedNodeSlots
-	if allowedNumNodesToAdd > t.burstMaxNumberOfNodesPerMin {
-		allowedNumNodesToAdd = t.burstMaxNumberOfNodesPerMin
+	allowedNumNodesToAdd := int(now.Sub(t.LastReserve).Minutes())*t.MaxNumberOfNodesPerMin + t.UnusedNodeSlots
+	if allowedNumNodesToAdd > t.BurstMaxNumberOfNodesPerMin {
+		allowedNumNodesToAdd = t.BurstMaxNumberOfNodesPerMin
 	}
 
 	if allowedNumNodesToAdd <= 0 {
@@ -54,12 +54,12 @@ func (t *ScaleUpRateLimiter) AcquireNodes(newNodes int) (bool, int) {
 		return false, 0
 	}
 
-	t.lastReserve = now
+	t.LastReserve = now
 	if newNodes > allowedNumNodesToAdd {
-		t.unusedNodeSlots = 0
+		t.UnusedNodeSlots = 0
 		return true, allowedNumNodesToAdd
 	}
-	t.unusedNodeSlots = allowedNumNodesToAdd - newNodes
+	t.UnusedNodeSlots = allowedNumNodesToAdd - newNodes
 
 	return true, newNodes
 }

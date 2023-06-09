@@ -229,6 +229,9 @@ var (
 	maxFreeDifferenceRatio            = flag.Float64("max-free-difference-ratio", config.DefaultMaxFreeDifferenceRatio, "Maximum difference in free resources between two similar node groups to be considered for balancing. Value is a ratio of the smaller node group's free resource.")
 	maxAllocatableDifferenceRatio     = flag.Float64("max-allocatable-difference-ratio", config.DefaultMaxAllocatableDifferenceRatio, "Maximum difference in allocatable resources between two similar node groups to be considered for balancing. Value is a ratio of the smaller node group's allocatable resource.")
 	forceDaemonSets                   = flag.Bool("force-ds", false, "Blocks scale-up of node groups too small for all suitable Daemon Sets pods.")
+	scaleUpRateLimitEnabledFlag       = flag.Bool("scale-up-rate-limit-enabled", false, "Should CA enable scale-up ratelimiting")
+	scaleUpMaxNumberOfNodesPerMin     = flag.Int("scale-up-max-number-nodes-per-min", -1, "Maximum number of nodes CA can scale up in 1 iteration")
+	scaleUpBurstNumberOfNodesPerMin   = flag.Int("scale-up-burst-number-nodes-per-min", -1, "Maximum burst number of nodes CA can scale up in 1 iteration")
 )
 
 func createAutoscalingOptions() config.AutoscalingOptions {
@@ -342,6 +345,9 @@ func createAutoscalingOptions() config.AutoscalingOptions {
 			MaxAllocatableDifferenceRatio:    *maxAllocatableDifferenceRatio,
 			MaxFreeDifferenceRatio:           *maxFreeDifferenceRatio,
 		},
+		ScaleUpRateLimitEnabled:            *scaleUpRateLimitEnabledFlag,
+		ScaleUpBurstMaxNumberOfNodesPerMin: *scaleUpBurstNumberOfNodesPerMin,
+		ScaleUpMaxNumberOfNodesPerMin:      *scaleUpMaxNumberOfNodesPerMin,
 	}
 }
 

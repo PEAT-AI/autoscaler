@@ -46,6 +46,7 @@ type Orchestrator interface {
 		nodes []*apiv1.Node,
 		daemonSets []*appsv1.DaemonSet,
 		nodeInfos map[string]*schedulerframework.NodeInfo,
+		scaleUpRateLimiter *ScaleUpRateLimiter,
 	) (*status.ScaleUpStatus, errors.AutoscalerError)
 	// ScaleUpToNodeGroupMinSize tries to scale up node groups that have less nodes
 	// than the configured min size. The source of truth for the current node group

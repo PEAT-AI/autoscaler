@@ -22,8 +22,8 @@ import (
 )
 
 // ScaleUpRateLimiter is a struct that handles the rate at which new nodes can be added.
-// It's a solution for the problem where the API server seems to be unresponsive when the cluster scales up too quickly. 
-// This issues renders the cluster to be unresponsive to kubectl and cortex commands. 
+// It's a solution for the problem where the API server seems to be unresponsive when the cluster scales up too quickly.
+// This issues renders the cluster to be unresponsive to kubectl and cortex commands.
 // It also might be related to cortex cluster down not cleaning up all of the resources.
 type ScaleUpRateLimiter struct {
 	// targeted number of nodes per min
@@ -38,7 +38,7 @@ type ScaleUpRateLimiter struct {
 }
 
 // AcquireNodes is a method of ScaleUpRateLimiter that decides the number of new nodes that can be added
-// based on the constraints and the number of nodes requested. It returns a boolean indicating if nodes 
+// based on the constraints and the number of nodes requested. It returns a boolean indicating if nodes
 // can be added and the number of nodes that can be added.
 func (t *ScaleUpRateLimiter) AcquireNodes(newNodes int) (bool, int) {
 	t.mu.Lock()

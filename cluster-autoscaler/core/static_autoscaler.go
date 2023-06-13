@@ -471,7 +471,7 @@ func (a *StaticAutoscaler) RunOnce(currentTime time.Time) errors.AutoscalerError
 	// add upcoming nodes to ClusterSnapshot
 	upcomingNodes := getUpcomingNodeInfos(a.clusterStateRegistry, nodeInfosForGroups)
 	for _, upcomingNode := range upcomingNodes {
-    var pods []*apiv1.Pod
+		var pods []*apiv1.Pod
 		for _, podInfo := range upcomingNode.Pods {
 			pods = append(pods, podInfo.Pod)
 		}

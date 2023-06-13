@@ -27,4 +27,4 @@
 *.un~
 Session.vim
 .netrwhist
-
+.history

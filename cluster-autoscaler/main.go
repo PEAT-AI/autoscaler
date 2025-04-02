@@ -271,6 +271,9 @@ var (
 	asyncNodeGroupsEnabled      = flag.Bool("async-node-groups", false, "Whether clusterautoscaler creates and deletes node groups asynchronously. Experimental: requires cloud provider supporting async node group operations, enable at your own risk.")
 	proactiveScaleupEnabled     = flag.Bool("enable-proactive-scaleup", false, "Whether to enable/disable proactive scale-ups, defaults to false")
 	podInjectionLimit           = flag.Int("pod-injection-limit", 5000, "Limits total number of pods while injecting fake pods. If unschedulable pods already exceeds the limit, pod injection is disabled but pods are not truncated.")
+	scaleUpRateLimitEnabledFlag        = flag.Bool("scale-up-rate-limit-enabled", false, "Should CA enable scale-up ratelimiting")
+	scaleUpMaxNumberOfNodesPerMin      = flag.Int("scale-up-max-number-nodes-per-min", -1, "Maximum number of nodes CA can scale up in 1 iteration")
+	scaleUpBurstNumberOfNodesPerMin    = flag.Int("scale-up-burst-number-nodes-per-min", -1, "Maximum burst number of nodes CA can scale up in 1 iteration")
 )
 
 func isFlagPassed(name string) bool {
@@ -437,6 +440,9 @@ func createAutoscalingOptions() config.AutoscalingOptions {
 		NodeDeleteDelayAfterTaint:          *nodeDeleteDelayAfterTaint,
 		ScaleDownSimulationTimeout:         *scaleDownSimulationTimeout,
 		ParallelDrain:                      *parallelDrain,
+		ScaleUpRateLimitEnabled:            *scaleUpRateLimitEnabledFlag,
+		ScaleUpBurstMaxNumberOfNodesPerMin: *scaleUpBurstNumberOfNodesPerMin,
+		ScaleUpMaxNumberOfNodesPerMin:      *scaleUpMaxNumberOfNodesPerMin,
 		SkipNodesWithCustomControllerPods:  *skipNodesWithCustomControllerPods,
 		NodeGroupSetRatios: config.NodeGroupDifferenceRatios{
 			MaxCapacityMemoryDifferenceRatio: *maxCapacityMemoryDifferenceRatio,

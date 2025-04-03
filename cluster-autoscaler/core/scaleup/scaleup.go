@@ -39,6 +39,7 @@ type Orchestrator interface {
 		clusterStateRegistry *clusterstate.ClusterStateRegistry,
 		estimatorBuilder estimator.EstimatorBuilder,
 		taintConfig taints.TaintConfig,
+		scaleUpRateLimiter *ScaleUpRateLimiter,
 	)
 	// ScaleUp tries to scale the cluster up. Returns appropriate status or error if
 	// an unexpected error occurred. Assumes that all nodes in the cluster are ready

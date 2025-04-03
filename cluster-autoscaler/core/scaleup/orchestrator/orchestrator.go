@@ -53,6 +53,7 @@ type ScaleUpOrchestrator struct {
 	scaleUpExecutor      *scaleUpExecutor
 	estimatorBuilder     estimator.EstimatorBuilder
 	taintConfig          taints.TaintConfig
+	scaleUpRateLimiter   *scaleup.ScaleUpRateLimiter
 	initialized          bool
 }
 
@@ -70,12 +71,14 @@ func (o *ScaleUpOrchestrator) Initialize(
 	clusterStateRegistry *clusterstate.ClusterStateRegistry,
 	estimatorBuilder estimator.EstimatorBuilder,
 	taintConfig taints.TaintConfig,
+	scaleUpRateLimiter *scaleup.ScaleUpRateLimiter,
 ) {
 	o.autoscalingContext = autoscalingContext
 	o.processors = processors
 	o.clusterStateRegistry = clusterStateRegistry
 	o.estimatorBuilder = estimatorBuilder
 	o.taintConfig = taintConfig
+	o.scaleUpRateLimiter = scaleUpRateLimiter
 	o.resourceManager = resource.NewManager(processors.CustomResourcesProcessor)
 	o.scaleUpExecutor = newScaleUpExecutor(autoscalingContext, processors.ScaleStateNotifier, o.processors.AsyncNodeGroupStateChecker)
 	o.initialized = true

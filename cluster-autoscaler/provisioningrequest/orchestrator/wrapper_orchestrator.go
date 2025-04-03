@@ -19,7 +19,7 @@ package orchestrator
 import (
 	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
-	"k8s.io/autoscaler/cluster-autoscaler/apis/provisioningrequest/autoscaling.x-k8s.io/v1"
+	v1 "k8s.io/autoscaler/cluster-autoscaler/apis/provisioningrequest/autoscaling.x-k8s.io/v1"
 	"k8s.io/autoscaler/cluster-autoscaler/clusterstate"
 	"k8s.io/autoscaler/cluster-autoscaler/context"
 	"k8s.io/autoscaler/cluster-autoscaler/core/scaleup"
@@ -69,6 +69,7 @@ func (o *WrapperOrchestrator) ScaleUp(
 	daemonSets []*appsv1.DaemonSet,
 	nodeInfos map[string]*schedulerframework.NodeInfo,
 	allOrNothing bool,
+	scaleUpRateLimiter *scaleup.ScaleUpRateLimiter,
 ) (*status.ScaleUpStatus, errors.AutoscalerError) {
 	defer func() { o.scaleUpRegularPods = !o.scaleUpRegularPods }()
 
@@ -80,9 +81,9 @@ func (o *WrapperOrchestrator) ScaleUp(
 	}
 
 	if o.scaleUpRegularPods {
-		return o.podsOrchestrator.ScaleUp(regularPods, nodes, daemonSets, nodeInfos, allOrNothing)
+		return o.podsOrchestrator.ScaleUp(regularPods, nodes, daemonSets, nodeInfos, allOrNothing, scaleUpRateLimiter)
 	}
-	return o.provReqOrchestrator.ScaleUp(provReqPods, nodes, daemonSets, nodeInfos, allOrNothing)
+	return o.provReqOrchestrator.ScaleUp(provReqPods, nodes, daemonSets, nodeInfos, allOrNothing, scaleUpRateLimiter)
 }
 
 func splitOut(unschedulablePods []*apiv1.Pod) (provReqPods, regularPods []*apiv1.Pod) {

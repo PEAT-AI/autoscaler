@@ -193,6 +193,11 @@ func NewStaticAutoscaler(
 	}
 	processorCallbacks.scaleDownPlanner = scaleDownPlanner
 
+	if scaleUpOrchestrator == nil {
+		scaleUpOrchestrator = orchestrator.New()
+	}
+	scaleUpOrchestrator.Initialize(autoscalingContext, processors, clusterStateRegistry, estimatorBuilder, taintConfig)
+
 	// Set the initial scale times to be less than the start time so as to
 	// not start in cooldown mode.
 	initialScaleTime := time.Now().Add(-time.Hour)
@@ -207,11 +212,6 @@ func NewStaticAutoscaler(
 			LastReserve:                 time.Now(),
 		}
 	}
-
-	if scaleUpOrchestrator == nil {
-		scaleUpOrchestrator = orchestrator.New()
-	}
-	scaleUpOrchestrator.Initialize(autoscalingContext, processors, clusterStateRegistry, estimatorBuilder, taintConfig, scaleUpRateLimiter)
 
 	return &StaticAutoscaler{
 		AutoscalingContext:      autoscalingContext,

@@ -292,7 +292,7 @@ func setupAutoscaler(config *autoscalerSetupConfig) (*StaticAutoscaler, error) {
 	sdPlanner, sdActuator := newScaleDownPlannerAndActuator(&context, processors, clusterState, config.mocks.nodeDeletionTracker)
 	suOrchestrator := orchestrator.New()
 
-	suOrchestrator.Initialize(&context, processors, clusterState, newEstimatorBuilder(), taints.TaintConfig{}, nil)
+	suOrchestrator.Initialize(&context, processors, clusterState, newEstimatorBuilder(), taints.TaintConfig{})
 
 	autoscaler := &StaticAutoscaler{
 		AutoscalingContext:   &context,
@@ -384,7 +384,7 @@ func TestStaticAutoscalerRunOnce(t *testing.T) {
 	clusterState := clusterstate.NewClusterStateRegistry(provider, clusterStateConfig, context.LogRecorder, NewBackoff(), nodegroupconfig.NewDefaultNodeGroupConfigProcessor(options.NodeGroupDefaults), processors.AsyncNodeGroupStateChecker)
 	sdPlanner, sdActuator := newScaleDownPlannerAndActuator(&context, processors, clusterState, nil)
 	suOrchestrator := orchestrator.New()
-	suOrchestrator.Initialize(&context, processors, clusterState, newEstimatorBuilder(), taints.TaintConfig{}, nil)
+	suOrchestrator.Initialize(&context, processors, clusterState, newEstimatorBuilder(), taints.TaintConfig{})
 
 	autoscaler := &StaticAutoscaler{
 		AutoscalingContext:    &context,
@@ -584,7 +584,7 @@ func TestStaticAutoscalerRunOnceWithScaleDownDelayPerNG(t *testing.T) {
 
 	sdPlanner, sdActuator := newScaleDownPlannerAndActuator(&context, processors, clusterState, nil)
 	suOrchestrator := orchestrator.New()
-	suOrchestrator.Initialize(&context, processors, clusterState, newEstimatorBuilder(), taints.TaintConfig{}, nil)
+	suOrchestrator.Initialize(&context, processors, clusterState, newEstimatorBuilder(), taints.TaintConfig{})
 
 	autoscaler := &StaticAutoscaler{
 		AutoscalingContext:    &context,
@@ -810,7 +810,7 @@ func TestStaticAutoscalerRunOnceWithAutoprovisionedEnabled(t *testing.T) {
 
 	sdPlanner, sdActuator := newScaleDownPlannerAndActuator(&context, processors, clusterState, nil)
 	suOrchestrator := orchestrator.New()
-	suOrchestrator.Initialize(&context, processors, clusterState, newEstimatorBuilder(), taints.TaintConfig{}, nil)
+	suOrchestrator.Initialize(&context, processors, clusterState, newEstimatorBuilder(), taints.TaintConfig{})
 
 	autoscaler := &StaticAutoscaler{
 		AutoscalingContext:    &context,
@@ -961,7 +961,7 @@ func TestStaticAutoscalerRunOnceWithALongUnregisteredNode(t *testing.T) {
 
 	sdPlanner, sdActuator := newScaleDownPlannerAndActuator(&context, processors, clusterState, nil)
 	suOrchestrator := orchestrator.New()
-	suOrchestrator.Initialize(&context, processors, clusterState, newEstimatorBuilder(), taints.TaintConfig{}, nil)
+	suOrchestrator.Initialize(&context, processors, clusterState, newEstimatorBuilder(), taints.TaintConfig{})
 
 	autoscaler := &StaticAutoscaler{
 		AutoscalingContext:    &context,
@@ -1110,7 +1110,7 @@ func TestStaticAutoscalerRunOncePodsWithPriorities(t *testing.T) {
 	clusterState := clusterstate.NewClusterStateRegistry(provider, clusterStateConfig, context.LogRecorder, NewBackoff(), nodegroupconfig.NewDefaultNodeGroupConfigProcessor(options.NodeGroupDefaults), processors.AsyncNodeGroupStateChecker)
 	sdPlanner, sdActuator := newScaleDownPlannerAndActuator(&context, processors, clusterState, nil)
 	suOrchestrator := orchestrator.New()
-	suOrchestrator.Initialize(&context, processors, clusterState, newEstimatorBuilder(), taints.TaintConfig{}, nil)
+	suOrchestrator.Initialize(&context, processors, clusterState, newEstimatorBuilder(), taints.TaintConfig{})
 
 	autoscaler := &StaticAutoscaler{
 		AutoscalingContext:    &context,

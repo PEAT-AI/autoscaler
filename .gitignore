@@ -28,7 +28,7 @@
 *.un~
 Session.vim
 .netrwhist
-
+.history
 # Binary files
 bin/
 

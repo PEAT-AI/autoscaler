@@ -25,6 +25,7 @@ import (
 	v1 "k8s.io/autoscaler/cluster-autoscaler/apis/provisioningrequest/autoscaling.x-k8s.io/v1"
 	"k8s.io/autoscaler/cluster-autoscaler/clusterstate"
 	"k8s.io/autoscaler/cluster-autoscaler/context"
+	"k8s.io/autoscaler/cluster-autoscaler/core/scaleup"
 	"k8s.io/autoscaler/cluster-autoscaler/estimator"
 	ca_processors "k8s.io/autoscaler/cluster-autoscaler/processors"
 	"k8s.io/autoscaler/cluster-autoscaler/processors/status"
@@ -57,9 +58,9 @@ func TestWrapperScaleUp(t *testing.T) {
 		pod.Annotations[v1.ProvisioningRequestPodAnnotationKey] = "true"
 	}
 	unschedulablePods := append(regularPods, provReqPods...)
-	_, err := o.ScaleUp(unschedulablePods, nil, nil, nil, false)
+	_, err := o.ScaleUp(unschedulablePods, nil, nil, nil, false, nil)
 	assert.Equal(t, err.Error(), provisioningRequestErrorMsg)
-	_, err = o.ScaleUp(unschedulablePods, nil, nil, nil, false)
+	_, err = o.ScaleUp(unschedulablePods, nil, nil, nil, false, nil)
 	assert.Equal(t, err.Error(), regularPodsErrorMsg)
 }
 
@@ -73,6 +74,7 @@ func (f *fakeScaleUp) ScaleUp(
 	daemonSets []*appsv1.DaemonSet,
 	nodeInfos map[string]*framework.NodeInfo,
 	allOrNothing bool,
+	scaleUpRateLimiter *scaleup.ScaleUpRateLimiter,
 ) (*status.ScaleUpStatus, errors.AutoscalerError) {
 	return nil, errors.NewAutoscalerError(errors.InternalError, f.errorMsg)
 }

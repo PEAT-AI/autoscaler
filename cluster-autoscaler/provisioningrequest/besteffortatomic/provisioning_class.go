@@ -112,7 +112,7 @@ func (o *bestEffortAtomicProvClass) Provision(
 		return &status.ScaleUpStatus{Result: status.ScaleUpNotNeeded}, nil
 	}
 
-	st, err := o.scaleUpOrchestrator.ScaleUp(actuallyUnschedulablePods, nodes, daemonSets, nodeInfos, true)
+	st, err := o.scaleUpOrchestrator.ScaleUp(actuallyUnschedulablePods, nodes, daemonSets, nodeInfos, true, nil)
 	if err == nil && st.Result == status.ScaleUpSuccessful {
 		// Happy path - all is well.
 		conditions.AddOrUpdateCondition(pr, v1.Provisioned, metav1.ConditionTrue, conditions.CapacityIsProvisionedReason, conditions.CapacityIsProvisionedMsg, metav1.Now())

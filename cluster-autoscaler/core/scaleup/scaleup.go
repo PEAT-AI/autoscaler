@@ -49,6 +49,7 @@ type Orchestrator interface {
 		daemonSets []*appsv1.DaemonSet,
 		nodeInfos map[string]*framework.NodeInfo,
 		allOrNothing bool,
+		scaleUpRateLimiter *ScaleUpRateLimiter,
 	) (*status.ScaleUpStatus, errors.AutoscalerError)
 	// ScaleUpToNodeGroupMinSize tries to scale up node groups that have less nodes
 	// than the configured min size. The source of truth for the current node group

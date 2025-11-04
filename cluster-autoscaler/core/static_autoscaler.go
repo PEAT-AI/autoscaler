@@ -88,6 +88,8 @@ type StaticAutoscaler struct {
 	processorCallbacks      *staticAutoscalerProcessorCallbacks
 	initialized             bool
 	taintConfig             taints.TaintConfig
+	// rate limiter to limit number of nodes in 1 scale up
+	scaleUpRateLimiter *scaleup.ScaleUpRateLimiter
 }
 
 type staticAutoscalerProcessorCallbacks struct {
@@ -185,6 +187,18 @@ func NewStaticAutoscaler(
 	// Set the initial scale times to be less than the start time so as to
 	// not start in cooldown mode.
 	initialScaleTime := time.Now().Add(-time.Hour)
+
+	var scaleUpRateLimiter *scaleup.ScaleUpRateLimiter
+
+	if opts.ScaleUpRateLimitEnabled && opts.ScaleUpMaxNumberOfNodesPerMin > 0 && opts.ScaleUpBurstMaxNumberOfNodesPerMin > 0 {
+		scaleUpRateLimiter = &scaleup.ScaleUpRateLimiter{
+			MaxNumberOfNodesPerMin:      opts.ScaleUpMaxNumberOfNodesPerMin,
+			BurstMaxNumberOfNodesPerMin: opts.ScaleUpBurstMaxNumberOfNodesPerMin,
+			UnusedNodeSlots:             0,
+			LastReserve:                 time.Now(),
+		}
+	}
+
 	return &StaticAutoscaler{
 		AutoscalingContext:      autoscalingContext,
 		lastScaleUpTime:         initialScaleTime,
@@ -198,6 +212,7 @@ func NewStaticAutoscaler(
 		processorCallbacks:      processorCallbacks,
 		clusterStateRegistry:    clusterStateRegistry,
 		taintConfig:             taintConfig,
+		scaleUpRateLimiter:      scaleUpRateLimiter,
 	}
 }
 
@@ -549,8 +564,10 @@ func (a *StaticAutoscaler) RunOnce(currentTime time.Time) caerrors.AutoscalerErr
 
 	if shouldScaleUp || a.processors.ScaleUpEnforcer.ShouldForceScaleUp(unschedulablePodsToHelp) {
 		scaleUpStart := preScaleUp()
-		scaleUpStatus, typedErr = a.scaleUpOrchestrator.ScaleUp(unschedulablePodsToHelp, readyNodes, daemonsets, nodeInfosForGroups, false)
-		postScaleUp(scaleUpStart)
+		scaleUpStatus, typedErr = a.scaleUpOrchestrator.ScaleUp(unschedulablePodsToHelp, readyNodes, daemonsets, nodeInfosForGroups, false, a.scaleUpRateLimiter)
+		if exit, err := postScaleUp(scaleUpStart); exit {
+			return err
+		}
 	}
 
 	if a.ScaleDownEnabled {

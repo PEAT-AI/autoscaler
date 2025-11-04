@@ -31,6 +31,7 @@ import (
 	ca_errors "k8s.io/autoscaler/cluster-autoscaler/utils/errors"
 	"k8s.io/autoscaler/cluster-autoscaler/utils/taints"
 
+	"k8s.io/autoscaler/cluster-autoscaler/core/scaleup"
 	ca_processors "k8s.io/autoscaler/cluster-autoscaler/processors"
 )
 
@@ -84,6 +85,7 @@ func (o *provReqOrchestrator) ScaleUp(
 	daemonSets []*appsv1.DaemonSet,
 	nodeInfos map[string]*framework.NodeInfo,
 	_ bool, // Provision() doesn't use this parameter.
+	_ *scaleup.ScaleUpRateLimiter, // Provision() doesn't use this parameter.
 ) (*status.ScaleUpStatus, ca_errors.AutoscalerError) {
 	if !o.initialized {
 		return &status.ScaleUpStatus{}, ca_errors.ToAutoscalerError(ca_errors.InternalError, fmt.Errorf("provisioningrequest.Orchestrator is not initialized"))

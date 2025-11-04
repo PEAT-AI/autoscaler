@@ -25,6 +25,7 @@ import (
 	"k8s.io/autoscaler/cluster-autoscaler/cloudprovider"
 	"k8s.io/autoscaler/cluster-autoscaler/clusterstate"
 	"k8s.io/autoscaler/cluster-autoscaler/context"
+	"k8s.io/autoscaler/cluster-autoscaler/core/scaleup"
 	"k8s.io/autoscaler/cluster-autoscaler/core/scaleup/equivalence"
 	"k8s.io/autoscaler/cluster-autoscaler/core/scaleup/resource"
 	"k8s.io/autoscaler/cluster-autoscaler/estimator"
@@ -88,6 +89,7 @@ func (o *ScaleUpOrchestrator) ScaleUp(
 	daemonSets []*appsv1.DaemonSet,
 	nodeInfos map[string]*framework.NodeInfo,
 	allOrNothing bool, // Either request enough capacity for all unschedulablePods, or don't request it at all.
+	scaleUpRateLimiter *scaleup.ScaleUpRateLimiter,
 ) (*status.ScaleUpStatus, errors.AutoscalerError) {
 	if !o.initialized {
 		return status.UpdateScaleUpError(&status.ScaleUpStatus{}, errors.NewAutoscalerError(errors.InternalError, "ScaleUpOrchestrator is not initialized"))
@@ -182,6 +184,27 @@ func (o *ScaleUpOrchestrator) ScaleUp(
 			ConsideredNodeGroups:    nodeGroups,
 		}, nil
 	}
+
+	
+	newNodes := bestOption.NodeCount
+	if newNodes > 0 && scaleUpRateLimiter != nil {
+		klog.V(1).Infof("Scale-Up ratelimiting enabled, re-evaluating %d new nodes", newNodes)
+		withinScaleUpLimit, targetedNumberOfNewNodes := scaleUpRateLimiter.AcquireNodes(newNodes)
+		if withinScaleUpLimit {
+			klog.V(1).Infof("Scale-Up ratelimiting enabled, able to scale up %d nodes", targetedNumberOfNewNodes)
+		} else {
+			klog.V(1).Infof("Scale-Up ratelimiting enabled, NOT able to scale up due to hit scale-up ratelimiting of %d nodes per min, burst at %d nodes, ignore this scale-up", scaleUpRateLimiter.MaxNumberOfNodesPerMin, scaleUpRateLimiter.BurstMaxNumberOfNodesPerMin)
+		}
+		bestOption.NodeCount = targetedNumberOfNewNodes
+	}
+	if bestOption.NodeCount <= 0 {
+		return &status.ScaleUpStatus{
+			Result:                  status.ScaleUpNoOptionsAvailable,
+			PodsRemainUnschedulable: GetRemainingPods(podEquivalenceGroups, skippedNodeGroups),
+			ConsideredNodeGroups:    nodeGroups,
+		}, nil
+	}
+
 	klog.V(1).Infof("Best option to resize: %s", bestOption.NodeGroup.Id())
 	if len(bestOption.Debug) > 0 {
 		klog.V(1).Info(bestOption.Debug)
@@ -189,7 +212,7 @@ func (o *ScaleUpOrchestrator) ScaleUp(
 	klog.V(1).Infof("Estimated %d nodes needed in %s", bestOption.NodeCount, bestOption.NodeGroup.Id())
 
 	// Cap new nodes to supported number of nodes in the cluster.
-	newNodes, aErr := o.GetCappedNewNodeCount(bestOption.NodeCount, len(nodes)+len(upcomingNodes))
+	newNodes, aErr = o.GetCappedNewNodeCount(bestOption.NodeCount, len(nodes)+len(upcomingNodes))
 	if aErr != nil {
 		return status.UpdateScaleUpError(&status.ScaleUpStatus{PodsTriggeredScaleUp: bestOption.Pods}, aErr)
 	}

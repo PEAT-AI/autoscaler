@@ -565,9 +565,7 @@ func (a *StaticAutoscaler) RunOnce(currentTime time.Time) caerrors.AutoscalerErr
 	if shouldScaleUp || a.processors.ScaleUpEnforcer.ShouldForceScaleUp(unschedulablePodsToHelp) {
 		scaleUpStart := preScaleUp()
 		scaleUpStatus, typedErr = a.scaleUpOrchestrator.ScaleUp(unschedulablePodsToHelp, readyNodes, daemonsets, nodeInfosForGroups, false, a.scaleUpRateLimiter)
-		if exit, err := postScaleUp(scaleUpStart); exit {
-			return err
-		}
+		postScaleUp(scaleUpStart)
 	}
 
 	if a.ScaleDownEnabled {
